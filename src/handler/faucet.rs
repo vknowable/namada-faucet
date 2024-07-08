@@ -3,19 +3,13 @@ use std::collections::HashMap;
 use axum::{extract::State, Json};
 use axum_macros::debug_handler;
 use namada_sdk::{
-    args::InputAmount,
-    rpc,
-    signing::default_sign,
-    tendermint::abci::Code,
-    tx::data::ResultCode,
-    address::Address,
-    masp::{TransferSource, TransferTarget},
-    Namada,
+    address::Address, args::InputAmount, rpc, signing::default_sign, tendermint::abci::Code,
+    tx::data::ResultCode, Namada,
 };
 
 use crate::{
     dto::faucet::{
-        self, FaucetRequestDto, FaucetResponseDto, FaucetResponseStatusDto, FaucetSettingResponse
+        FaucetRequestDto, FaucetResponseDto, FaucetResponseStatusDto, FaucetSettingResponse,
     },
     error::{api::ApiError, faucet::FaucetError, validate::ValidatedRequest},
     repository::faucet::FaucetRepositoryTrait,
@@ -116,12 +110,22 @@ pub async fn request_transfer(
     )
     .await;
 
-    let mut transfer_tx_builder = state.sdk.new_transparent_transfer(
-        faucet_address,
-        target_address,
-        token_address.clone(),
-        InputAmount::Unvalidated(denominated_amount),
-    );
+
+    use namada_sdk::args::TxTransparentTransferData;
+
+    // Create instances of TxTransparentTransferData
+    let transfer_data = vec![
+        TxTransparentTransferData {
+            source: faucet_address,
+            target: target_address,
+            token: token_address.clone(),
+            amount: InputAmount::Unvalidated(denominated_amount),
+        },
+    ];
+    
+    // Call the new_transparent_transfer function with the vector
+    let mut transfer_tx_builder = state.sdk.new_transparent_transfer(transfer_data);
+    
 
     transfer_tx_builder.tx.memo = Some("Transfer from faucet".to_string().as_bytes().to_vec());
 
