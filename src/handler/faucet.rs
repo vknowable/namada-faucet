@@ -19,7 +19,7 @@ use crate::{
 pub async fn faucet_settings(
     State(state): State<FaucetState>,
 ) -> Result<Json<FaucetSettingResponse>, ApiError> {
-    let nam_token_address = rpc::query_native_token(state.sdk.client()).await.unwrap();
+    let nam_token_address = rpc::query_native_token(&state.sdk.clone_client()).await.unwrap();
 
     let response = FaucetSettingResponse {
         difficulty: state.difficulty,
@@ -93,7 +93,7 @@ pub async fn request_transfer(
     let faucet_address = state.faucet_address.clone();
 
     if let Ok(balance) =
-        rpc::get_token_balance(state.sdk.client(), &token_address, &faucet_address).await
+        rpc::get_token_balance(&state.sdk.clone_client(), &token_address, &faucet_address, None).await
     {
         if balance < payload.transfer.amount.into() {
             return Err(FaucetError::FaucetOutOfBalance.into());
@@ -103,8 +103,8 @@ pub async fn request_transfer(
     }
 
     let denominated_amount = rpc::denominate_amount(
-        state.sdk.client(),
-        state.sdk.io(),
+        &state.sdk.clone_client(),
+        &state.sdk.io,
         &token_address,
         payload.transfer.amount.into(),
     )
